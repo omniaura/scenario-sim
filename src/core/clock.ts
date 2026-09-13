@@ -67,8 +67,15 @@ export class VirtualClock {
     return { id, at, label, cancel: () => this.cancel(id) };
   }
 
-  /** Promise that resolves after `ms` virtual milliseconds. */
+  /**
+   * Promise that resolves after `ms` virtual milliseconds. A non-positive
+   * delay resolves immediately (a microtask), never via a timer: zero latency
+   * must not push a response out to the next macrotask — that changes when
+   * data lands relative to the app's own microtasks, which an in-bundle mock
+   * being replaced by this engine never did.
+   */
   sleep(ms: number, label = "sleep"): Promise<void> {
+    if (!(ms > 0)) return Promise.resolve();
     return new Promise((resolve) => void this.after(ms, resolve, label));
   }
 

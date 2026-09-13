@@ -53,6 +53,21 @@ describe("VirtualClock", () => {
     expect(late).toBe(true);
     expect(() => new VirtualClock("realtime").step(1)).toThrow();
   });
+  test("sleep(0) resolves within the microtask queue, before any timer", async () => {
+    const clock = new VirtualClock("realtime");
+    const order: string[] = [];
+    setTimeout(() => order.push("timer"), 0);
+    await clock.sleep(0).then(() => order.push("sleep0"));
+    expect(order).toEqual(["sleep0"]);
+    await new Promise((r) => setTimeout(r, 1));
+    expect(order).toEqual(["sleep0", "timer"]);
+    // manual mode too: nothing to step for a zero delay
+    const manual = new VirtualClock("manual");
+    let done = false;
+    void manual.sleep(0).then(() => (done = true));
+    await Promise.resolve();
+    expect(done).toBe(true);
+  });
 });
 
 describe("Store", () => {
