@@ -42,7 +42,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "bun test",
+    "dev": "tsup --watch",
+    "test": "bun --conditions=browser --conditions=development test tests && bun --conditions=browser --conditions=development test e2e",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
@@ -64,12 +65,11 @@
   "author": "omniaura",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/omniaura/solid-pulse.git",
-    "directory": "packages/scenario-sim"
+    "url": "git+https://github.com/omniaura/scenario-sim.git"
   },
-  "homepage": "https://github.com/omniaura/solid-pulse/tree/main/packages/scenario-sim#readme",
+  "homepage": "https://github.com/omniaura/scenario-sim#readme",
   "bugs": {
-    "url": "https://github.com/omniaura/solid-pulse/issues"
+    "url": "https://github.com/omniaura/scenario-sim/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -86,6 +86,15 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.12"
+    "@happy-dom/global-registrator": "^20.14.5",
+    "@semantic-release/git": "^10.0.1",
+    "@types/bun": "latest",
+    "@types/node": "^22",
+    "@types/ws": "^8.5.12",
+    "happy-dom": "^20.14.5",
+    "semantic-release": "25",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^7.0.0"
   }
 }

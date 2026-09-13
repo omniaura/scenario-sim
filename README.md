@@ -1,5 +1,7 @@
 # @omniaura/scenario-sim
 
+[![npm](https://img.shields.io/npm/v/@omniaura/scenario-sim)](https://www.npmjs.com/package/@omniaura/scenario-sim) · pairs with [`@omniaura/solid-pulse`](https://github.com/omniaura/solid-pulse) (the panel/CLI that drives it) — see [`docs/migrating-header-driven-mocks.md`](docs/migrating-header-driven-mocks.md) to migrate an existing mock.
+
 > A mock backend that behaves like a backend: stateful, seeded, reproducible, streaming — and controllable by humans and agents alike.
 
 Most mock layers return fixtures. `scenario-sim` runs **scenarios**: a seeded world with CRUD state, a virtual clock, response sequences and faults, SSE and WebSocket routes whose events come from state mutations, and a control plane to select/reset/step/inspect everything. The core is runtime-neutral (Web `Request`/`Response`) so the same scenario runs as a Bun/Node server, inside the Vite dev server, or entirely inside the browser.
