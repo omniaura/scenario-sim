@@ -11,9 +11,9 @@ export default defineConfig([
     target: "es2022",
   },
   {
-    entry: { server: "src/server.ts", vite: "src/vite.ts", cli: "src/cli.ts" },
+    entry: { server: "src/server.ts", vite: "src/vite.ts", cli: "src/cli.ts", codegen: "src/codegen.ts" },
     format: ["esm"],
-    dts: { entry: { server: "src/server.ts", vite: "src/vite.ts" } },
+    dts: { entry: { server: "src/server.ts", vite: "src/vite.ts", codegen: "src/codegen.ts" } },
     sourcemap: true,
     platform: "node",
     target: "node20",

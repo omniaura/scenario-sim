@@ -118,3 +118,7 @@ attachScenarioCommands(pulse, { kind: "local", sim, run: "tab-1" });         // 
 - `drop()` cuts a connection without a close frame (the client sees 1006), unlike `close()`. Stream delivery latency is separate from HTTP latency (`streamLatencyMs`).
 
 MIT © omniaura
+# TypeScript authoring
+
+See [typed scenarios and file discovery](docs/typescript-scenarios.md) for route-derived
+builders, generated static imports, and Vite-loaded configuration files.

@@ -45,6 +45,8 @@ export interface SimulatorOptions {
   /** Add permissive CORS headers (default true — the mock is a dev tool). */
   cors?: boolean;
   log?: (line: string) => void;
+  /** Header/cookie latency replaces the default for legacy console mocks. Default: additive. */
+  requestLatency?: "add" | "replace";
 }
 
 /**
@@ -71,6 +73,7 @@ export class Simulator {
   readonly defaultScenario: string;
   private readonly cors: boolean;
   private readonly log: (line: string) => void;
+  private readonly requestLatency: "add" | "replace";
 
   constructor(options: SimulatorOptions) {
     if (options.scenarios.length === 0) throw new Error("at least one scenario is required");
@@ -84,6 +87,7 @@ export class Simulator {
     this.defaultRun = options.defaultRun ?? "default";
     this.cors = options.cors ?? true;
     this.log = options.log ?? (() => {});
+    this.requestLatency = options.requestLatency ?? "add";
   }
 
   // ── runs ─────────────────────────────────────────────────────────
@@ -147,9 +151,10 @@ export class Simulator {
       // Per-request fault overrides (compatible with console-style mocks):
       // `X-Sim-Latency: <ms>` and `X-Sim-Fail: off|data|all` apply to this
       // request only, on top of the run's configured faults.
-      const latencyHeader = request.headers.get("x-sim-latency");
-      const failHeader = request.headers.get("x-sim-fail");
-      const extraLatency = latencyHeader !== null && latencyHeader !== "" && Number.isFinite(Number(latencyHeader)) ? Math.max(0, Number(latencyHeader)) : 0;
+      const latencyHeader = request.headers.get("x-sim-latency") ?? this.cookie(request, "sim_latency");
+      const failHeader = request.headers.get("x-sim-fail") ?? this.cookie(request, "sim_fail");
+      const latencyOverride = latencyHeader !== null && latencyHeader !== "" && Number.isFinite(Number(latencyHeader)) ? Math.max(0, Number(latencyHeader)) : undefined;
+      const delay = (extra = 0) => this.requestLatency === "replace" ? run.faults.delayFor(extra, latencyOverride) : run.faults.delayFor(extra + (latencyOverride ?? 0));
       const failOverride = failHeader === "off" || failHeader === "data" || failHeader === "all" ? failHeader : null;
       const failResponse = (p: string) => {
         if (failOverride === null) return run.faults.failResponse(p);
@@ -162,7 +167,7 @@ export class Simulator {
       const override = run.faults.matchOverride(path, method);
       if (override) {
         run.log(`${method} ${path} → override ${override.id}`, { status: override.status ?? null, malformed: override.malformed ?? null });
-        await run.clock.sleep(run.faults.delayFor(override.delayMs ?? 0), `override ${override.id}`);
+        await run.clock.sleep(delay(override.delayMs ?? 0), `override ${override.id}`);
         return this.withCors(request, run.faults.overrideResponse(override));
       }
 
@@ -189,7 +194,7 @@ export class Simulator {
       const failed = failResponse(path);
       if (failed) {
         run.log(`${method} ${path} → fail mode ${failOverride ?? run.faults.failMode}`);
-        await run.clock.sleep(run.faults.delayFor(extraLatency), "fail-mode latency");
+        await run.clock.sleep(delay(), "fail-mode latency");
         return this.withCors(request, failed);
       }
 
@@ -198,7 +203,7 @@ export class Simulator {
         if ((route.method ?? "GET") !== method) continue;
         const params = matchPath(route.path, path);
         if (!params) continue;
-        await run.clock.sleep(run.faults.delayFor(extraLatency), "sse open latency");
+        await run.clock.sleep(delay(), "sse open latency");
         const stream = run.streams.openSse(route, this.streamContext(run, request, url, params));
         return this.withCors(request, stream.response);
       }
@@ -211,7 +216,7 @@ export class Simulator {
         route.calls++;
         const ctx = this.routeContext(run, request, url, params, route.calls);
         const started = run.clock.now();
-        await run.clock.sleep(run.faults.delayFor(extraLatency), `latency ${method} ${path}`);
+        await run.clock.sleep(delay(), `latency ${method} ${path}`);
         const response = await route.handler(ctx);
         run.log(`${method} ${path} → ${response.status}`, { route: route.name ?? route.path, ms: Math.round(run.clock.now() - started) });
         return this.withCors(request, response);
