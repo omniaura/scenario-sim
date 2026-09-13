@@ -13,6 +13,7 @@
  */
 
 const HELP = `scenario-sim — deterministic scenario simulator control
+  scenario-sim generate <directory> [--out directory]
 
   scenario-sim serve <scenarios.(ts|js)> [--port 4100] [--host 127.0.0.1] [--scenario name]
   scenario-sim scenarios | status | state [collection=] | events [since=] | log | streams | runs | overrides
@@ -56,6 +57,13 @@ async function main() {
   const cmd = positional[0];
   if (!cmd || cmd === "help" || flags.help) return void process.stdout.write(HELP + "\n");
 
+  if (cmd === "generate") {
+    const { generateScenarios } = await import("./codegen.js");
+    const result = await generateScenarios({ directory: positional[1] ?? "scenarios", outputDirectory: typeof flags.out === "string" ? flags.out : undefined });
+    console.log(JSON.stringify(result));
+    return;
+  }
+
   if (cmd === "serve") {
     const file = positional[1];
     if (!file) throw new Error("serve needs a scenarios file");
@@ -66,7 +74,8 @@ async function main() {
     if (!scenarios?.length) throw new Error("scenarios file must export an array (default or `scenarios`)");
     const { Simulator } = await import("./core/engine.js");
     const { serveSimulator } = await import("./server.js");
-    const sim = new Simulator({ scenarios, defaultScenario: typeof flags.scenario === "string" ? flags.scenario : undefined, log: (l) => console.error(l) });
+    const config = !Array.isArray(mod.default) ? mod.default as Partial<import("./core/engine.js").SimulatorOptions> | undefined : undefined;
+    const sim = new Simulator({ ...config, scenarios, defaultScenario: typeof flags.scenario === "string" ? flags.scenario : config?.defaultScenario, log: (l) => console.error(l) });
     const running = await serveSimulator(sim, { port: flags.port ? Number(flags.port) : 4100, host: typeof flags.host === "string" ? flags.host : "127.0.0.1", log: (l) => console.error(l) });
     console.error(`[scenario-sim] scenarios: ${scenarios.map((s) => s.name).join(", ")} · control ${running.controlUrl}/status`);
     await new Promise(() => {});

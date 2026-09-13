@@ -47,8 +47,11 @@ export interface CompiledRoute extends Route {
 
 const JSON_HEADERS = { "content-type": "application/json", "cache-control": "no-store" };
 
-export function json(body: unknown, init: ResponseInit & { status?: number } = {}): Response {
-  return new Response(body === undefined ? null : JSON.stringify(body), { ...init, status: init.status ?? 200, headers: { ...JSON_HEADERS, ...(init.headers as Record<string, string> | undefined) } });
+declare const responseBody: unique symbol;
+export type JsonResponse<T> = Response & { readonly [responseBody]: T };
+
+export function json<T>(body: T, init: ResponseInit & { status?: number } = {}): JsonResponse<T> {
+  return new Response(body === undefined ? null : JSON.stringify(body), { ...init, status: init.status ?? 200, headers: { ...JSON_HEADERS, ...(init.headers as Record<string, string> | undefined) } }) as JsonResponse<T>;
 }
 
 export function text(body: string, init: ResponseInit = {}): Response {
@@ -90,10 +93,10 @@ export function malformed(kind: MalformedKind, extra?: unknown): Response {
  * Response factory or a handler.
  */
 export function sequence(steps: Array<Handler | Response>, opts: { loop?: boolean } = {}): Handler {
-  let i = 0;
+  if (!steps.length) throw new Error("sequence requires at least one response");
   return async (ctx) => {
+    const i = ctx.calls - 1;
     const idx = opts.loop ? i % steps.length : Math.min(i, steps.length - 1);
-    i++;
     const step = steps[idx]!;
     if (step instanceof Response) return step.clone();
     return step(ctx);
@@ -155,13 +158,21 @@ export function statusText(status: number): string {
 }
 
 /** Route helpers so scenario files read like a table. */
+export type PathParams<P extends string> = string extends P ? Record<string, string> :
+  Record<ParamNames<P>, string>;
+type ParamNames<P extends string> = P extends `${string}/:${infer Param}/${infer Rest}` ? Param | ParamNames<`/${Rest}`> : P extends `${string}/:${infer Param}` ? Param : never;
+
+export type PathContext<P extends string> = Omit<RouteContext, "params"> & { params: PathParams<P> };
+export type TypedRoute<P extends string, R extends Response> = Route & { path: P; handler: (ctx: PathContext<P>) => R | Promise<R> };
+
+function routeMethod(method: Method) {
+  return <const P extends string, R extends Response>(path: P, handler: (ctx: PathContext<P>) => R | Promise<R>, name?: string): TypedRoute<P, R> =>
+    ({ method, path, handler: handler as unknown as Handler, name }) as TypedRoute<P, R>;
+}
+
 export const route = {
-  get: (path: string, handler: Handler, name?: string): Route => ({ method: "GET", path, handler, name }),
-  post: (path: string, handler: Handler, name?: string): Route => ({ method: "POST", path, handler, name }),
-  put: (path: string, handler: Handler, name?: string): Route => ({ method: "PUT", path, handler, name }),
-  patch: (path: string, handler: Handler, name?: string): Route => ({ method: "PATCH", path, handler, name }),
-  delete: (path: string, handler: Handler, name?: string): Route => ({ method: "DELETE", path, handler, name }),
-  any: (path: string, handler: Handler, name?: string): Route => ({ method: "*", path, handler, name }),
+  get: routeMethod("GET"), post: routeMethod("POST"), put: routeMethod("PUT"),
+  patch: routeMethod("PATCH"), delete: routeMethod("DELETE"), any: routeMethod("*"),
 };
 
 /**

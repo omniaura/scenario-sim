@@ -1,4 +1,6 @@
 export { Rng } from "./core/rng.js";
+export { defineConfig, defineRoutes, createScenarioBuilder } from "./authoring.js";
+export type { JsonResponse, TypedRoute, PathContext, PathParams } from "./core/router.js";
 export { VirtualClock, VIRTUAL_EPOCH, type ClockMode, type ClockTimer } from "./core/clock.js";
 export { Store, type StoreEvent, type StoreEventKind, type StoreListener } from "./core/store.js";
 export { route, crud, json, text, empty, problem, malformed, sequence, delayed, compileRoute, statusText, type Route, type Handler, type RouteContext, type Method, type MalformedKind } from "./core/router.js";

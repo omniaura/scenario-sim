@@ -57,9 +57,9 @@ export class FaultLayer {
   }
 
   /** Effective delay for one request (seeded jitter keeps it reproducible). */
-  delayFor(extra = 0): number {
+  delayFor(extra = 0, latencyOverride?: number): number {
     const jitter = this.jitterMs > 0 ? this.rng.int(0, this.jitterMs) : 0;
-    return this.latencyMs + jitter + extra;
+    return (latencyOverride ?? this.latencyMs) + jitter + extra;
   }
 
   setOverride(input: OverrideInput): Override {
