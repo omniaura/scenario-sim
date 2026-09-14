@@ -10,6 +10,10 @@
     "scenario-sim": "dist/cli.js"
   },
   "exports": {
+    "./ports": {
+      "types": "./dist/ports.d.ts",
+      "import": "./dist/ports.js"
+    },
     "./codegen": {
       "types": "./dist/codegen.d.ts",
       "import": "./dist/codegen.js"

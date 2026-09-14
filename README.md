@@ -8,6 +8,14 @@ Most mock layers return fixtures. `scenario-sim` runs **scenarios**: a seeded wo
 
 ## Define a scenario
 
+### Smart local ports
+
+The CLI starts at port 4100 and tries the next port if it is occupied. It prints the actual control URL; pass that URL to subsequent commands with --url (or SCENARIO_SIM_URL). Explicit --port N and --strict-port never silently move. No existing listener is stopped or reused.
+
+Programmatic servers preserve strict-port behavior by default. Opt in with serveSimulator(sim, { port: 4100, strictPort: false }); the returned port, url and controlUrl describe the real bound listener. Port 0 requests an OS-assigned port. The Node-only @omniaura/scenario-sim/ports export provides withPortFallback(bind, options) for other adapters: retry only EADDRINUSE, bound attempts, and bind the real service instead of probing and releasing a temporary socket. A rejected bind callback must clean up its own partial resources.
+
+Browser devtools cannot allocate listening ports. The launcher/server selects them before boot and passes the actual API URL to the panel and command adapters. Vite integrations should use Vite's own strictPort: false and read httpServer.address() after listen(), rather than probing an unrelated HTTP server for readiness.
+
 ```ts
 import { defineScenario, crud, route, json, problem, sequence, malformed, ws, sse } from "@omniaura/scenario-sim";
 

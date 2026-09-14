@@ -76,7 +76,8 @@ async function main() {
     const { serveSimulator } = await import("./server.js");
     const config = !Array.isArray(mod.default) ? mod.default as Partial<import("./core/engine.js").SimulatorOptions> | undefined : undefined;
     const sim = new Simulator({ ...config, scenarios, defaultScenario: typeof flags.scenario === "string" ? flags.scenario : config?.defaultScenario, log: (l) => console.error(l) });
-    const running = await serveSimulator(sim, { port: flags.port ? Number(flags.port) : 4100, host: typeof flags.host === "string" ? flags.host : "127.0.0.1", log: (l) => console.error(l) });
+    if (flags.port !== undefined && typeof flags.port !== "string") throw new Error("--port needs a number");
+    const running = await serveSimulator(sim, { port: flags.port !== undefined ? Number(flags.port) : 4100, strictPort: flags.port !== undefined || !!flags["strict-port"], host: typeof flags.host === "string" ? flags.host : "127.0.0.1", log: (l) => console.error(l) });
     console.error(`[scenario-sim] scenarios: ${scenarios.map((s) => s.name).join(", ")} · control ${running.controlUrl}/status`);
     await new Promise(() => {});
     return;
