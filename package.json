@@ -1,6 +1,6 @@
 {
   "name": "@omniaura/scenario-sim",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deterministic scenario simulator for frontend QA: stateful CRUD routes, seeded RNG, virtual clock, response sequences, faults and overrides, SSE and WebSocket routes with scheduled events and resume, per-run isolation, inspectable event log. Runtime-neutral core (Web Request/Response) with Bun/Node server, Vite middleware and in-browser adapters.",
   "type": "module",
   "main": "./dist/index.js",
