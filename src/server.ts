@@ -11,6 +11,7 @@ import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { isUpgraded, upgradedResponse, type Simulator, type UpgradeHook } from "./core/engine.js";
 import type { SocketTransport } from "./core/streams.js";
+import { withPortFallback } from "./ports.js";
 
 export function toWebRequest(req: IncomingMessage, base: string): Request {
   const url = new URL(req.url ?? "/", base);
@@ -100,6 +101,8 @@ export function attachWebSockets(sim: Simulator, server: HttpServer, opts: { bas
 
 export interface ServeOptions {
   port?: number;
+  /** Retry occupied ports by binding the next port. Default true preserves fixed-port callers. */
+  strictPort?: boolean;
   host?: string;
   log?: (line: string) => void;
 }
@@ -111,12 +114,19 @@ export async function serveSimulator(sim: Simulator, options: ServeOptions = {})
     void sim.handle(toWebRequest(req, base)).then((response) => sendWebResponse(res, response));
   });
   const wss = attachWebSockets(sim, server, { base: () => base });
-  const port = await new Promise<number>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(options.port ?? 0, host, () => {
+  const port = await withPortFallback((candidate) => new Promise<number>((resolve, reject) => {
+    const failed = (error: Error) => { server.removeListener("listening", listening); reject(error); };
+    const listening = () => {
+      server.removeListener("error", failed);
       const addr = server.address();
-      resolve(typeof addr === "object" && addr ? addr.port : (options.port ?? 0));
-    });
+      resolve(typeof addr === "object" && addr ? addr.port : candidate);
+    };
+    server.once("error", failed);
+    server.once("listening", listening);
+    server.listen(candidate, host);
+  }), { port: options.port ?? 0, strictPort: options.strictPort }).catch((error) => {
+    wss.close();
+    throw error;
   });
   base = `http://${host}:${port}`;
   options.log?.(`[scenario-sim] listening at ${base}  control: ${base}${sim.controlPath}/status`);
